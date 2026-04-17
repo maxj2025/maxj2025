@@ -1,0 +1,46 @@
+name: Generate Snake
+
+on:
+  # 优化1：触发效率。保留定时任务（每12小时跑一次即可，无需太频繁）
+  schedule:
+    - cron: "0 */12 * * *" 
+  
+  # 增加 Push 触发：当你更新主页 README 时，立刻生成一次，不用干等定时任务
+  push:
+    branches:
+      - main
+      - master
+  
+  workflow_dispatch:
+
+# 优化2：收紧权限安全域。
+# GitHub 近期收紧了默认 Token 的权限，如果不显式声明写入权限，可能会导致推送到 output 分支失败。
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Generate Snake Animation
+        uses: Platane/snk@v3
+        id: snake-gif
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          # 优化3：视觉参数定制。
+          # 为深色模式配置了与你数据看板 (tokyonight) 相呼应的配色方案
+          # 贪吃蛇使用冷蓝色 (#7aa2f7)，吃掉的方块使用渐变蓝紫调
+          outputs: |
+            dist/github-contribution-grid-snake.svg
+            dist/github-contribution-grid-snake-dark.svg?palette=github-dark&color_snake=#7aa2f7&color_dots=#1a1b26,#164e63,#0ea5e9,#3b82f6,#8b5cf6
+
+      - name: Push to Output Branch
+        uses: crazy-max/ghaction-github-pages@v3.1.0
+        with:
+          target_branch: output
+          build_dir: dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
